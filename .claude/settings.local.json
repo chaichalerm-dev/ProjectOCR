@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-ChildItem -Path \"C:\\\\xampp\\\\htdocs\\\\myproject\\\\ProjectOCR\" -Recurse -Exclude \"node_modules\" | Where-Object { $_.FullName -notmatch \"node_modules|\\\\.next\" } | Select-Object FullName | ForEach-Object { $_.FullName.Replace\\(\"C:\\\\xampp\\\\htdocs\\\\myproject\\\\ProjectOCR\\\\\", \"\"\\) })",
+      "PowerShell($pkg = Get-Content \"C:\\\\xampp\\\\htdocs\\\\myproject\\\\ProjectOCR\\\\node_modules\\\\lucide-react\\\\package.json\" | ConvertFrom-Json; Write-Output \"Version: $\\($pkg.version\\)\")"
+    ]
+  }
+}
