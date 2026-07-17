@@ -1,8 +1,13 @@
 import type { Metadata } from "next";
-import { headers } from "next/headers";
 import "./globals.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -31,27 +36,14 @@ export const metadata: Metadata = {
   category: "technology",
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const nonce = (await headers()).get("x-nonce") ?? undefined;
   return (
     <html lang="th" suppressHydrationWarning>
       <body className="antialiased">
-        <script nonce={nonce} type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "SoftwareApplication",
-          name: "ProjectOCR",
-          applicationCategory: "UtilitiesApplication",
-          operatingSystem: "Web",
-          url: siteUrl,
-          inLanguage: ["th", "en"],
-          description: "เครื่องมืออ่านข้อความภาษาไทยและอังกฤษจากรูปภาพภายในเว็บเบราว์เซอร์",
-          offers: { "@type": "Offer", price: "0", priceCurrency: "THB" },
-          featureList: ["Thai OCR", "English OCR", "Image to text", "Client-side image processing"],
-        }).replace(/</g, "\\u003c") }} />
         {children}
       </body>
     </html>
