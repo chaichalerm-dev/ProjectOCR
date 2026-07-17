@@ -38,7 +38,59 @@ import {
   AlertCircle,
   CircleCheck,
   Contrast,
+  Sun,
+  Moon,
+  Languages,
+  ChevronDown,
+  Check,
+  ShieldCheck,
+  Zap,
+  PencilLine,
+  Github,
+  ExternalLink,
+  Heart,
 } from 'lucide-react';
+
+type UILanguage = 'th' | 'en';
+type Theme = 'light' | 'dark';
+
+const UI_TEXT = {
+  th: {
+    privacy: 'รูปของคุณจะถูกประมวลผลบนเครื่องนี้เท่านั้น',
+    title: 'อ่านข้อความจากรูปภาพ',
+    subtitle: 'อัปโหลดรูป แล้วระบบจะช่วยอ่านข้อความออกมาให้ คุณแก้ไข คัดลอก หรือบันทึกต่อได้ทันที',
+    upload: 'ลากรูปมาวาง หรือคลิกเพื่อเลือกรูป',
+    browse: 'เลือกไฟล์จากเครื่อง',
+    formats: 'รองรับไฟล์ PNG และ JPG',
+    replace: 'เปลี่ยนรูป', remove: 'นำรูปออก',
+    mixed: 'ไทยและอังกฤษ', english: 'อังกฤษ', thai: 'ไทย',
+    read: 'อ่านข้อความ', reading: 'กำลังอ่าน…',
+    result: 'ข้อความที่อ่านได้', chars: 'ตัวอักษร', words: 'คำ',
+    copy: 'คัดลอก', copied: 'คัดลอกแล้ว', download: 'บันทึก .txt',
+    empty: 'เพิ่มรูปภาพก่อน แล้วกด “อ่านข้อความ”',
+    ready: 'พร้อมแล้ว กด “อ่านข้อความ” เพื่อเริ่ม',
+    working: 'กำลังอ่านข้อความจากรูป กรุณารอสักครู่…',
+    failed: 'อ่านไม่สำเร็จ ลองเลือกรูปที่ชัดขึ้นหรือเปลี่ยนภาษาของเอกสาร',
+    complete: 'อ่านข้อความเรียบร้อยแล้ว', processing: 'กำลังเตรียมและอ่านข้อความ…',
+    appearance: 'เปลี่ยนโหมดสี', language: 'เปลี่ยนภาษาเว็บไซต์', ocrLanguage: 'ภาษาที่อยู่ในรูป',
+  },
+  en: {
+    privacy: 'Your images are processed only on this device',
+    title: 'Turn images into editable text',
+    subtitle: 'Upload an image and we’ll pull out the text so you can edit, copy, or save it right away.',
+    upload: 'Drop an image here, or click to choose one',
+    browse: 'Choose a file', formats: 'PNG and JPG files are supported',
+    replace: 'Change image', remove: 'Remove image',
+    mixed: 'Thai and English', english: 'English', thai: 'Thai',
+    read: 'Read text', reading: 'Reading…',
+    result: 'Extracted text', chars: 'characters', words: 'words',
+    copy: 'Copy', copied: 'Copied', download: 'Save .txt',
+    empty: 'Add an image, then select “Read text”', ready: 'Ready when you are. Select “Read text” to begin.',
+    working: 'Reading the text in your image…', failed: 'Couldn’t read this image. Try a clearer image or another document language.',
+    complete: 'Your text is ready', processing: 'Preparing and reading your image…',
+    appearance: 'Switch color mode', language: 'Switch website language', ocrLanguage: 'Language in the image',
+  },
+} as const;
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 //
@@ -358,6 +410,12 @@ async function preprocessImage(
 
 export default function Home() {
 
+  const [uiLanguage, setUiLanguage] = useState<UILanguage>('th');
+  const [theme, setTheme] = useState<Theme>('light');
+  const [preferencesReady, setPreferencesReady] = useState(false);
+  const [ocrMenuOpen, setOcrMenuOpen] = useState(false);
+  const ocrMenuRef = useRef<HTMLDivElement>(null);
+
   // ── State ────────────────────────────────────────────────────────────────────
   //
   // [EN] Every piece of UI-driven mutable data lives here.
@@ -425,6 +483,39 @@ export default function Home() {
   // [TH] ควบคุมสถานะ "คัดลอกแล้ว!" ชั่วคราวบนปุ่ม Copy
   //      รีเซ็ตเป็น false อัตโนมัติหลัง 2 วินาทีผ่าน timer ref
   const [copied, setCopied] = useState<boolean>(false);
+
+  const t = UI_TEXT[uiLanguage];
+
+  useEffect(() => {
+    const closeMenu = (event: MouseEvent) => {
+      if (!ocrMenuRef.current?.contains(event.target as Node)) setOcrMenuOpen(false);
+    };
+    const closeOnEscape = (event: globalThis.KeyboardEvent) => {
+      if (event.key === 'Escape') setOcrMenuOpen(false);
+    };
+    document.addEventListener('mousedown', closeMenu);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('mousedown', closeMenu);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, []);
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('projectocr-theme') as Theme | null;
+    const savedLanguage = localStorage.getItem('projectocr-language') as UILanguage | null;
+    if (savedTheme === 'dark' || savedTheme === 'light') setTheme(savedTheme);
+    if (savedLanguage === 'th' || savedLanguage === 'en') setUiLanguage(savedLanguage);
+    setPreferencesReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!preferencesReady) return;
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+    document.documentElement.lang = uiLanguage;
+    localStorage.setItem('projectocr-theme', theme);
+    localStorage.setItem('projectocr-language', uiLanguage);
+  }, [theme, uiLanguage, preferencesReady]);
 
   // ── Refs ─────────────────────────────────────────────────────────────────────
   //
@@ -890,40 +981,55 @@ export default function Home() {
   //        </main>
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white">
+    <div className="relative min-h-screen overflow-hidden bg-[#f8faff] text-slate-950 transition-colors dark:bg-[#090d18] dark:text-white">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+        <div className="absolute -left-40 -top-48 h-[460px] w-[460px] rounded-full bg-blue-300/30 blur-3xl dark:bg-blue-700/15" />
+        <div className="absolute -right-36 top-52 h-[400px] w-[400px] rounded-full bg-fuchsia-300/20 blur-3xl dark:bg-fuchsia-700/10" />
+        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-cyan-200/25 blur-3xl dark:bg-cyan-700/10" />
+      </div>
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       {/* [EN] Sticky frosted-glass header with backdrop blur.
               z-10 keeps it above floating elements during scroll.
           [TH] Header กระจกฝ้าติดจอพร้อม backdrop blur
               z-10 ทำให้อยู่เหนือ element ลอยตัวระหว่าง scroll */}
-      <header className="sticky top-0 z-10 h-14 border-b border-gray-100 dark:border-white/[0.06] bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-md">
-        <div className="max-w-6xl mx-auto px-5 h-full flex items-center justify-between">
+      <header className="sticky top-0 z-20 border-b border-white/70 bg-white/70 shadow-[0_1px_0_rgba(15,23,42,.04)] backdrop-blur-xl dark:border-white/[0.07] dark:bg-[#090d18]/75">
+        <div className="mx-auto flex min-h-16 max-w-6xl items-center justify-between gap-3 px-4 py-2 sm:px-6">
           {/* Logo + app name */}
           <div className="flex items-center gap-2.5">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gray-900 dark:bg-white shadow-sm">
-              <ScanText className="h-4 w-4 text-white dark:text-gray-900" />
+            <div className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-blue-600 via-violet-600 to-fuchsia-600 shadow-lg shadow-violet-500/20 ring-1 ring-white/40">
+              <ScanText className="h-[19px] w-[19px] text-white" strokeWidth={2.4} />
+              <span className="absolute inset-x-1.5 top-1/2 h-px bg-cyan-200/80 shadow-[0_0_6px_#67e8f9]" />
             </div>
-            <span className="text-sm font-semibold tracking-tight">ProjectOCR</span>
+            <div className="font-display leading-none"><span className="block text-sm font-bold tracking-tight sm:text-base">Project<span className="bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">OCR</span></span><span className="mt-1 hidden text-[9px] font-semibold uppercase tracking-[.2em] text-slate-400 sm:block">Smart text scanner</span></div>
           </div>
           {/* [EN] Privacy notice — hidden on small screens (sm:inline-block)
               [TH] ประกาศความเป็นส่วนตัว — ซ่อนบนหน้าจอเล็ก (sm:inline-block) */}
-          <span className="hidden sm:inline-block text-xs text-gray-400 dark:text-gray-600">
-            Client-side only · your images never leave the browser
-          </span>
+          <div className="flex items-center gap-1.5">
+            <nav aria-label={uiLanguage === 'th' ? 'เมนูหลัก' : 'Main navigation'} className="mr-2 hidden items-center gap-1 md:flex">
+              <a href="#tool" className="rounded-lg px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-blue-50 hover:text-blue-700 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-blue-300">{uiLanguage === 'th' ? 'เครื่องมือ' : 'Tool'}</a>
+              <a href="#how-it-works" className="rounded-lg px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-blue-50 hover:text-blue-700 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-blue-300">{uiLanguage === 'th' ? 'วิธีใช้' : 'How it works'}</a>
+              <a href="#resources" className="rounded-lg px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-blue-50 hover:text-blue-700 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-blue-300">{uiLanguage === 'th' ? 'แหล่งเรียนรู้' : 'Resources'}</a>
+            </nav>
+            <span className="mr-2 hidden text-xs text-slate-500 lg:inline">{t.privacy}</span>
+            <button type="button" onClick={() => setUiLanguage(uiLanguage === 'th' ? 'en' : 'th')} aria-label={t.language} title={t.language} className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10">
+              <Languages className="h-4 w-4" /><span>{uiLanguage === 'th' ? 'EN' : 'ไทย'}</span>
+            </button>
+            <button type="button" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')} aria-label={t.appearance} title={t.appearance} className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10">
+              {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+            </button>
+          </div>
         </div>
       </header>
 
       {/* ── Main ───────────────────────────────────────────────────────────── */}
-      <main className="max-w-6xl mx-auto px-5 py-8">
+      <main className="relative z-10 mx-auto max-w-6xl px-4 py-7 sm:px-6 sm:py-12">
 
         {/* Page heading */}
-        <div className="mb-7">
-          <h1 className="text-2xl font-bold tracking-tight">Text Extraction</h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Upload an image to extract text. Images are auto-preprocessed
-            (grayscale → Otsu threshold) before recognition.
-          </p>
+        <div className="mb-7 max-w-3xl sm:mb-10">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-blue-200/70 bg-blue-50/80 px-3 py-1 text-[11px] font-semibold text-blue-700 shadow-sm dark:border-blue-400/20 dark:bg-blue-400/10 dark:text-blue-300"><span className="h-1.5 w-1.5 rounded-full bg-blue-500 shadow-[0_0_0_3px_rgba(59,130,246,.15)]" />{uiLanguage === 'th' ? 'อ่านได้ทั้งภาษาไทยและอังกฤษ' : 'Reads Thai and English'}</div>
+          <h1 className="font-display text-3xl font-extrabold sm:text-5xl"><span className="bg-gradient-to-r from-slate-950 via-blue-700 to-violet-700 bg-clip-text text-transparent dark:from-white dark:via-blue-300 dark:to-violet-300">{t.title}</span></h1>
+          <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-400 sm:text-base">{t.subtitle}</p>
         </div>
 
         {/* [EN] Two-column responsive grid.
@@ -934,10 +1040,10 @@ export default function Home() {
                 lg:grid-cols-[5fr_7fr] ให้ panel ผลลัพธ์กว้างกว่า panel อัปโหลด
                 เหมาะกับเครื่องมือที่เน้นการอ่าน
                 บนหน้าจอที่แคบกว่า 1024px คอลัมน์จะเรียงซ้อนกัน */}
-        <div className="grid grid-cols-1 lg:grid-cols-[5fr_7fr] gap-5 items-start">
+        <div id="tool" className="grid scroll-mt-24 grid-cols-1 items-start gap-6 lg:grid-cols-[5fr_7fr] lg:gap-7">
 
           {/* ══ Left panel ═══════════════════════════════════════════════════ */}
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4 rounded-3xl border border-white/80 bg-white/75 p-4 shadow-[0_18px_60px_-28px_rgba(37,99,235,.28)] backdrop-blur-xl dark:border-white/[0.08] dark:bg-white/[0.04] sm:p-5">
 
             {/* ── Upload / preview zone ─────────────────────────────────── */}
             {/* [EN] Dual-purpose: drag-drop target when empty, image preview when loaded.
@@ -949,16 +1055,14 @@ export default function Home() {
             <div
               role="button"
               tabIndex={0}
-              aria-label={
-                uploadedImage ? 'Image preview' : 'Click or drag to upload an image'
-              }
+              aria-label={uploadedImage ? uploadedImage.file.name : t.upload}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               onClick={() => { if (!uploadedImage) openFilePicker(); }}
               onKeyDown={handleZoneKeyDown}
               className={[
-                'relative overflow-hidden rounded-xl border-2 transition-all duration-150 outline-none',
+                'relative overflow-hidden rounded-2xl border-2 bg-gradient-to-br from-white/80 to-blue-50/50 transition-all duration-200 outline-none dark:from-white/[0.04] dark:to-blue-950/10',
                 'focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2',
                 'dark:focus-visible:ring-offset-[#0a0a0a]',
                 // [EN] Solid border when image is loaded; dashed + hover states when empty
@@ -970,9 +1074,8 @@ export default function Home() {
                   ? 'border-blue-400 bg-blue-50 dark:bg-blue-950/20'
                   : !uploadedImage
                   ? [
-                      'border-gray-200 dark:border-white/[0.08]',
-                      'hover:border-gray-300 dark:hover:border-white/[0.14]',
-                      'hover:bg-gray-50 dark:hover:bg-white/[0.02]',
+                      'border-blue-200/80 dark:border-blue-400/20',
+                      'hover:-translate-y-0.5 hover:border-violet-400 hover:shadow-[0_14px_35px_-18px_rgba(124,58,237,.45)] dark:hover:border-violet-400/50',
                     ].join(' ')
                   : '',
               ].join(' ')}
@@ -1008,14 +1111,14 @@ export default function Home() {
                       [TH] Hover overlay: เปลี่ยนรูปภาพ / ลบรูปภาพ
                           e.stopPropagation() ป้องกันไม่ให้ onClick ของ div ด้านนอก
                           (ซึ่งจะเปิด file picker) ทำงานด้วย */}
-                  <div className="absolute inset-0 flex items-center justify-center gap-2 rounded-[10px] bg-black/0 opacity-0 transition-all duration-200 group-hover:bg-black/40 group-hover:opacity-100">
+                  <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-2 rounded-b-[10px] bg-black/55 p-3 opacity-100 transition-all duration-200 sm:inset-0 sm:rounded-[10px] sm:bg-black/0 sm:opacity-0 sm:group-hover:bg-black/40 sm:group-hover:opacity-100">
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); openFilePicker(); }}
                       className="flex items-center gap-1.5 rounded-lg bg-white/95 px-3 py-2 text-xs font-medium text-gray-800 shadow hover:bg-white active:scale-95 transition-transform"
                     >
                       <ImagePlus className="h-3.5 w-3.5" />
-                      Change
+                      {t.replace}
                     </button>
                     <button
                       type="button"
@@ -1023,41 +1126,34 @@ export default function Home() {
                       className="flex items-center gap-1.5 rounded-lg bg-white/95 px-3 py-2 text-xs font-medium text-red-600 shadow hover:bg-white active:scale-95 transition-transform"
                     >
                       <X className="h-3.5 w-3.5" />
-                      Remove
+                      {t.remove}
                     </button>
                   </div>
                 </div>
               ) : (
                 /* ── Empty / drag-active state ──────────────────────────────── */
-                <div className="flex select-none flex-col items-center justify-center gap-3 py-14 px-6 text-center">
+                <div className="flex min-h-64 select-none flex-col items-center justify-center gap-3 px-5 py-10 text-center sm:py-14">
                   {/* [EN] Icon container changes colour during active drag
                       [TH] Container ไอคอนเปลี่ยนสีระหว่าง drag ที่ active */}
                   <div className={[
                     'rounded-xl p-3 transition-colors',
                     isDragging
                       ? 'bg-blue-100 dark:bg-blue-900/40'
-                      : 'bg-gray-100 dark:bg-white/[0.06]',
+                      : 'bg-gradient-to-br from-blue-100 to-violet-100 shadow-inner dark:from-blue-500/20 dark:to-violet-500/20',
                   ].join(' ')}>
                     <ImagePlus className={[
                       'h-6 w-6 transition-colors',
                       isDragging
                         ? 'text-blue-500'
-                        : 'text-gray-400 dark:text-gray-500',
+                        : 'text-violet-600 dark:text-violet-300',
                     ].join(' ')} />
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {isDragging ? (
-                        'Drop image here'
-                      ) : (
-                        <span>
-                          Drop image or{' '}
-                          <span className="text-blue-600 dark:text-blue-400">browse files</span>
-                        </span>
-                      )}
+                      {isDragging ? t.upload : t.upload}
                     </p>
                     <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-600">
-                      PNG or JPEG · Max 10 MB recommended
+                      <span className="text-blue-600 dark:text-blue-400">{t.browse}</span> · {t.formats}
                     </p>
                   </div>
                 </div>
@@ -1096,39 +1192,32 @@ export default function Home() {
             )}
 
             {/* ── Controls: language selector + Extract button ──────────── */}
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
 
-              {/* [EN] Language dropdown — custom chevron replaces native <select> arrow.
-                      pointer-events-none on the chevron div lets click-through to the <select>.
-                  [TH] ดรอปดาวน์ภาษา — chevron แบบ custom แทนที่ลูกศร <select> เดิม
-                      pointer-events-none บน div ลูกศรให้คลิกผ่านถึง <select> ได้ */}
-              <div className="relative flex-1 min-w-0">
-                <select
-                  value={language}
-                  onChange={(e) => setLanguage(e.target.value as OCRLanguage)}
-                  disabled={isProcessing}
-                  aria-label="OCR language"
-                  className={[
-                    'w-full appearance-none rounded-lg border px-3 py-2.5 pr-8 text-sm',
-                    'bg-white dark:bg-white/[0.04] text-gray-900 dark:text-gray-100',
-                    'border-gray-200 dark:border-white/[0.08]',
-                    'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
-                    'disabled:cursor-not-allowed disabled:opacity-50 transition-colors',
-                  ].join(' ')}
-                >
-                  {LANGUAGE_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-                <div className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400">
-                  <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                    <path
-                      fillRule="evenodd"
-                      clipRule="evenodd"
-                      d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z"
-                    />
-                  </svg>
-                </div>
+              <div ref={ocrMenuRef} className="relative min-w-0 flex-1">
+                <button type="button" disabled={isProcessing} aria-haspopup="listbox" aria-expanded={ocrMenuOpen} aria-label={t.ocrLanguage} onClick={() => setOcrMenuOpen((open) => !open)}
+                  className="group flex min-h-11 w-full items-center gap-3 rounded-xl border border-blue-200/80 bg-white/90 px-3 py-2 text-left text-sm shadow-sm transition-all hover:border-violet-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-white/[0.05] dark:hover:border-violet-400/40">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-100 to-violet-100 text-violet-600 dark:from-blue-500/20 dark:to-violet-500/20 dark:text-violet-300"><Languages className="h-4 w-4" /></span>
+                  <span className="min-w-0 flex-1"><span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-400">{t.ocrLanguage}</span><span className="block truncate font-semibold text-slate-800 dark:text-slate-100">{language === 'tha+eng' ? t.mixed : language === 'eng' ? t.english : t.thai}</span></span>
+                  <ChevronDown className={`h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200 ${ocrMenuOpen ? 'rotate-180 text-violet-500' : 'group-hover:text-violet-500'}`} />
+                </button>
+
+                {ocrMenuOpen && !isProcessing && (
+                  <div role="listbox" aria-label={t.ocrLanguage} className="absolute left-0 right-0 z-30 mt-2 overflow-hidden rounded-2xl border border-white/80 bg-white/95 p-1.5 shadow-[0_18px_45px_-12px_rgba(76,29,149,.3)] backdrop-blur-xl dark:border-white/10 dark:bg-[#171526]/95">
+                    {([
+                      { value: 'tha+eng', label: t.mixed, mark: 'TH · EN' },
+                      { value: 'tha', label: t.thai, mark: 'TH' },
+                      { value: 'eng', label: t.english, mark: 'EN' },
+                    ] as const).map((option) => {
+                      const selected = language === option.value;
+                      return <button key={option.value} type="button" role="option" aria-selected={selected} onClick={() => { setLanguage(option.value); setOcrMenuOpen(false); }} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition ${selected ? 'bg-gradient-to-r from-blue-50 to-violet-50 text-violet-700 dark:from-blue-500/15 dark:to-violet-500/15 dark:text-violet-200' : 'text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-white/[0.06]'}`}>
+                        <span className={`flex h-8 min-w-10 items-center justify-center rounded-lg px-2 text-[10px] font-bold ${selected ? 'bg-gradient-to-br from-blue-600 to-violet-600 text-white shadow-md shadow-violet-500/20' : 'bg-slate-100 text-slate-500 dark:bg-white/[0.07] dark:text-slate-400'}`}>{option.mark}</span>
+                        <span className="flex-1 font-medium">{option.label}</span>
+                        {selected && <Check className="h-4 w-4 text-violet-600 dark:text-violet-300" />}
+                      </button>;
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* [EN] Extract button — disabled until an image is loaded or while processing.
@@ -1142,9 +1231,9 @@ export default function Home() {
                 onClick={runOCR}
                 disabled={!uploadedImage || isProcessing}
                 className={[
-                  'flex shrink-0 items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm',
-                  'bg-gray-900 dark:bg-white text-white dark:text-gray-900',
-                  'hover:bg-gray-700 dark:hover:bg-gray-100',
+                  'flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold shadow-lg shadow-blue-500/20',
+                  'bg-gradient-to-r from-blue-600 via-violet-600 to-fuchsia-600 text-white',
+                  'hover:-translate-y-0.5 hover:shadow-xl hover:shadow-violet-500/25',
                   'active:scale-[0.97] transition-all duration-150',
                   'disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100',
                 ].join(' ')}
@@ -1153,7 +1242,7 @@ export default function Home() {
                   ? <Loader2 className="h-4 w-4 animate-spin" />
                   : <ScanText className="h-4 w-4" />
                 }
-                {isProcessing ? 'Processing…' : 'Extract'}
+                {isProcessing ? t.reading : t.read}
               </button>
             </div>
 
@@ -1191,7 +1280,7 @@ export default function Home() {
                     status === 'done'  ? 'text-green-700 dark:text-green-400' :
                                         'text-gray-600 dark:text-gray-400',
                   ].join(' ')}>
-                    {status === 'error' ? errorMsg : statusLabel}
+                    {status === 'error' ? t.failed : status === 'done' ? t.complete : t.processing}
                   </p>
                 </div>
 
@@ -1224,7 +1313,7 @@ export default function Home() {
                   <div className="flex items-center gap-1.5 pt-0.5">
                     <Contrast className="h-3 w-3 shrink-0 text-gray-400 dark:text-gray-600" />
                     <span className="text-[10px] text-gray-400 dark:text-gray-600">
-                      Grayscale → Otsu threshold → binary B&amp;W
+                      {uiLanguage === 'th' ? 'ปรับภาพให้อ่านตัวอักษรได้ชัดขึ้นอัตโนมัติ' : 'Image clarity improved automatically'}
                     </span>
                   </div>
                 )}
@@ -1237,14 +1326,14 @@ export default function Home() {
           {/* ══ Right panel ══════════════════════════════════════════════════ */}
           {/* [EN] Result area: small toolbar above the editable textarea.
               [TH] พื้นที่ผลลัพธ์: toolbar เล็กๆ เหนือ textarea ที่แก้ไขได้ */}
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 rounded-3xl border border-white/80 bg-white/75 p-4 shadow-[0_18px_60px_-28px_rgba(124,58,237,.25)] backdrop-blur-xl dark:border-white/[0.08] dark:bg-white/[0.04] sm:p-5">
 
             {/* ── Result toolbar ───────────────────────────────────────── */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               {/* Label + stats */}
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Extracted Text
+                  {t.result}
                 </span>
                 {/* [EN] Character and word count — tabular-nums prevents layout shift
                         as digits change during editing.
@@ -1252,9 +1341,9 @@ export default function Home() {
                         เมื่อตัวเลขเปลี่ยนระหว่างแก้ไข */}
                 {hasResult && (
                   <span className="tabular-nums text-xs text-gray-400 dark:text-gray-600">
-                    {resultText.length.toLocaleString()} chars
+                    {resultText.length.toLocaleString()} {t.chars}
                     {' · '}
-                    {wordCount.toLocaleString()} words
+                    {wordCount.toLocaleString()} {t.words}
                   </span>
                 )}
               </div>
@@ -1286,8 +1375,8 @@ export default function Home() {
                   ].join(' ')}
                 >
                   {copied
-                    ? <><CheckCheck className="h-3.5 w-3.5" />Copied!</>
-                    : <><Copy className="h-3.5 w-3.5" />Copy</>
+                    ? <><CheckCheck className="h-3.5 w-3.5" />{t.copied}</>
+                    : <><Copy className="h-3.5 w-3.5" />{t.copy}</>
                   }
                 </button>
 
@@ -1311,7 +1400,7 @@ export default function Home() {
                   ].join(' ')}
                 >
                   <Download className="h-3.5 w-3.5" />
-                  Download .txt
+                  {t.download}
                 </button>
               </div>
             </div>
@@ -1327,6 +1416,7 @@ export default function Home() {
                     spellCheck={false} ป้องกันขีดเส้นแดงใต้คำภาษาไทย
                     placeholder ปรับตามขั้นตอน pipeline ปัจจุบันเพื่อให้ผู้ใช้
                     รู้ว่าต้องทำอะไรต่อไปเสมอ */}
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500/35 via-violet-500/25 to-fuchsia-500/30 p-px shadow-[0_14px_40px_-24px_rgba(79,70,229,.55)]">
             <textarea
               value={resultText}
               onChange={(e) => setResultText(e.target.value)}
@@ -1334,32 +1424,48 @@ export default function Home() {
               spellCheck={false}
               placeholder={
                 isProcessing
-                  ? 'Extracting text from your image…'
+                  ? t.working
                   : !uploadedImage
-                  ? 'Upload an image, then click "Extract" to begin…'
+                  ? t.empty
                   : status === 'error'
-                  ? 'Extraction failed. Adjust the language or try a clearer image.'
+                  ? t.failed
                   : status === 'idle'
-                  ? 'Click "Extract" to start the OCR process…'
+                  ? t.ready
                   : ''
               }
               className={[
-                'w-full resize-none rounded-xl border p-4',
-                'h-[480px] lg:h-[620px]',
-                'bg-white dark:bg-white/[0.03]',
-                'text-sm leading-7 font-mono text-gray-900 dark:text-gray-100',
+                'w-full resize-none rounded-[15px] border-0 p-4 shadow-inner sm:p-5',
+                'min-h-[360px] h-[52vh] max-h-[680px] sm:min-h-[440px] lg:h-[620px]',
+                'bg-white/90 dark:bg-black/20',
+                'text-[15px] leading-7 text-gray-900 dark:text-gray-100 sm:text-base',
                 'placeholder:text-gray-300 dark:placeholder:text-gray-700',
-                'border-gray-200 dark:border-white/[0.08]',
-                'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
+                'focus:outline-none focus:ring-2 focus:ring-inset focus:ring-violet-500',
                 'transition-colors',
               ].join(' ')}
             />
+              <div aria-hidden="true" className="pointer-events-none absolute bottom-3 right-3 flex h-7 w-7 items-center justify-center rounded-lg bg-white/80 text-violet-400 shadow-sm backdrop-blur dark:bg-white/10"><PencilLine className="h-3.5 w-3.5" /></div>
+            </div>
 
           </div>
           {/* ══ End right panel ══ */}
 
         </div>
+
+        <section id="how-it-works" className="scroll-mt-24 py-16 sm:py-24" aria-labelledby="how-title">
+          <div className="mx-auto max-w-3xl text-center"><span className="text-xs font-bold uppercase tracking-[.2em] text-violet-600 dark:text-violet-300">ProjectOCR</span><h2 id="how-title" className="mt-3 text-2xl font-extrabold text-slate-900 dark:text-white sm:text-4xl">{uiLanguage === 'th' ? 'เปลี่ยนรูปให้เป็นข้อความในไม่กี่ขั้นตอน' : 'Turn an image into text in a few simple steps'}</h2><p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-slate-600 dark:text-slate-400 sm:text-base">{uiLanguage === 'th' ? 'เหมาะกับเอกสาร ใบเสร็จ โน้ต และภาพหน้าจอที่มีข้อความภาษาไทยหรืออังกฤษ โดยไม่ต้องพิมพ์ใหม่ทีละบรรทัด' : 'Useful for documents, receipts, notes, and screenshots in Thai or English—without retyping every line.'}</p></div>
+          <div className="mt-10 grid gap-4 md:grid-cols-3">
+            {[
+              { icon: ShieldCheck, color: 'from-emerald-500 to-teal-500', th: 'รูปอยู่กับคุณ', en: 'Private by design', thd: 'รูปถูกอ่านภายในเบราว์เซอร์ ไม่ได้อัปโหลดไปเก็บบนเซิร์ฟเวอร์ของเรา', end: 'Images are read in your browser and are not stored on our server.' },
+              { icon: Zap, color: 'from-blue-500 to-violet-500', th: 'เริ่มใช้งานได้ทันที', en: 'Ready in moments', thd: 'เลือกรูป ตั้งภาษาของเอกสาร แล้วกดอ่านข้อความได้เลย', end: 'Choose an image, select its language, and start reading.' },
+              { icon: PencilLine, color: 'from-violet-500 to-fuchsia-500', th: 'แก้ไขและนำไปใช้ต่อ', en: 'Edit and reuse', thd: 'ตรวจแก้ข้อความ คัดลอก หรือบันทึกเป็นไฟล์ .txt ได้ในหน้าเดียว', end: 'Review, edit, copy, or save the result as a .txt file.' },
+            ].map(({ icon: Icon, color, th, en, thd, end }) => <article key={en} className="rounded-3xl border border-white/80 bg-white/70 p-6 shadow-[0_18px_50px_-30px_rgba(37,99,235,.35)] backdrop-blur dark:border-white/10 dark:bg-white/[0.04]"><span className={`flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br ${color} text-white shadow-lg`}><Icon className="h-5 w-5" /></span><h3 className="mt-5 text-lg font-bold">{uiLanguage === 'th' ? th : en}</h3><p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-400">{uiLanguage === 'th' ? thd : end}</p></article>)}
+          </div>
+        </section>
+
+        <section className="pb-16 sm:pb-24" aria-labelledby="seo-title"><div className="rounded-[2rem] border border-blue-200/60 bg-gradient-to-br from-blue-600 via-violet-600 to-fuchsia-600 p-[1px] shadow-2xl shadow-violet-500/15"><div className="rounded-[calc(2rem-1px)] bg-white/95 p-7 dark:bg-[#101321]/95 sm:p-10"><div className="grid gap-8 lg:grid-cols-[1.3fr_.7fr] lg:items-center"><div><h2 id="seo-title" className="text-2xl font-extrabold sm:text-3xl">{uiLanguage === 'th' ? 'OCR ภาษาไทยและอังกฤษ ใช้ง่ายจากทุกอุปกรณ์' : 'Thai and English OCR on any device'}</h2><p className="mt-4 text-sm leading-7 text-slate-600 dark:text-slate-400 sm:text-base">{uiLanguage === 'th' ? 'ProjectOCR คือเครื่องมืออ่านข้อความจากรูปภาพออนไลน์ รองรับ PNG และ JPEG ช่วยแปลงภาพเอกสารเป็นข้อความที่แก้ไขได้ เหมาะสำหรับนักเรียน คนทำงาน และผู้ที่ต้องการดึงข้อความจากภาพอย่างรวดเร็ว' : 'ProjectOCR is an online image-to-text tool for PNG and JPEG files. It converts document images into editable text for students, teams, and anyone who needs text from an image quickly.'}</p></div><a href="#tool" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-violet-600 px-6 text-sm font-bold text-white shadow-lg shadow-violet-500/25 transition hover:-translate-y-0.5">{uiLanguage === 'th' ? 'เริ่มอ่านข้อความจากรูป' : 'Start reading an image'} <ExternalLink className="h-4 w-4" /></a></div></div></div></section>
       </main>
+
+      <footer id="resources" className="relative z-10 border-t border-white/70 bg-white/60 backdrop-blur-xl dark:border-white/[0.07] dark:bg-black/10"><div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:px-6 md:grid-cols-[1fr_auto]"><div><div className="flex items-center gap-2 font-bold"><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-violet-600 text-white"><ScanText className="h-4 w-4" /></span>ProjectOCR</div><p className="mt-3 max-w-xl text-xs leading-6 text-slate-500 dark:text-slate-400">{uiLanguage === 'th' ? 'โปรเจกต์โอเพนซอร์สเพื่อการเรียนรู้และต่อยอด สร้างด้วยเทคโนโลยีจากชุมชนนักพัฒนาทั่วโลก' : 'An open-source learning project built to explore and extend tools from the global developer community.'}</p><p className="mt-4 flex items-center gap-1 text-xs text-slate-400">Made with <Heart className="h-3.5 w-3.5 fill-fuchsia-500 text-fuchsia-500" /> for useful, accessible tools.</p></div><div><h2 className="text-xs font-bold uppercase tracking-wider text-slate-500">{uiLanguage === 'th' ? 'เครดิตและแหล่งเรียนรู้' : 'Credits & resources'}</h2><div className="mt-3 flex flex-wrap gap-2 md:max-w-sm md:justify-end"><a href="https://tesseract.projectnaptha.com/" target="_blank" rel="noreferrer" className="resource-link">Tesseract.js <ExternalLink /></a><a href="https://github.com/tesseract-ocr/tesseract" target="_blank" rel="noreferrer" className="resource-link"><Github /> Tesseract OCR</a><a href="https://nextjs.org/docs" target="_blank" rel="noreferrer" className="resource-link">Next.js <ExternalLink /></a><a href="https://lucide.dev/" target="_blank" rel="noreferrer" className="resource-link">Lucide <ExternalLink /></a></div></div></div><div className="border-t border-slate-200/70 px-4 py-4 text-center text-[11px] text-slate-400 dark:border-white/[0.06]">© {new Date().getFullYear()} ProjectOCR · {uiLanguage === 'th' ? 'สร้างเพื่อการเรียนรู้และใช้งานอย่างรับผิดชอบ' : 'Built for learning and responsible use'}</div></footer>
     </div>
   );
 }

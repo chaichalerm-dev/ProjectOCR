@@ -5,16 +5,81 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --font-ui: Inter, "Aptos", "Segoe UI Variable", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --font-display: Inter, "Aptos Display", "Segoe UI Variable Display", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html[lang="th"] {
+  --font-ui: "Noto Sans Thai", "Leelawadee UI", Tahoma, ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Noto Sans Thai", "Leelawadee UI", Tahoma, ui-sans-serif, system-ui, sans-serif;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
+  min-width: 320px;
+  text-rendering: optimizeLegibility;
+  font-family: var(--font-ui);
+  font-synthesis: none;
+}
+
+h1, h2, h3, .font-display {
+  font-family: var(--font-display);
+}
+
+html[lang="th"] body {
+  line-height: 1.65;
+}
+
+html[lang="th"] h1,
+html[lang="th"] h2,
+html[lang="th"] h3 {
+  letter-spacing: -0.015em;
+  line-height: 1.3;
+}
+
+html[lang="en"] h1,
+html[lang="en"] h2,
+html[lang="en"] h3 {
+  letter-spacing: -0.035em;
+}
+
+::selection {
+  color: #fff;
+  background: #6d28d9;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #a5b4fc transparent;
+}
+
+button, select, textarea {
+  font: inherit;
+}
+
+.resource-link {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  border: 1px solid rgb(226 232 240 / .9);
+  border-radius: .75rem;
+  background: rgb(255 255 255 / .7);
+  padding: .5rem .7rem;
+  color: #475569;
+  font-size: .72rem;
+  font-weight: 600;
+  transition: .2s ease;
+}
+.resource-link:hover { border-color: #a78bfa; color: #6d28d9; transform: translateY(-1px); }
+.resource-link svg { width: .8rem; height: .8rem; }
+.dark .resource-link { border-color: rgb(255 255 255 / .1); background: rgb(255 255 255 / .04); color: #cbd5e1; }
+.dark .resource-link:hover { border-color: rgb(167 139 250 / .5); color: #c4b5fd; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
