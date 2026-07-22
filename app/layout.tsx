@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import "./globals.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
@@ -36,11 +37,15 @@ export const metadata: Metadata = {
   category: "technology",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Reading the nonce forces dynamic rendering, which lets Next.js embed a
+  // matching nonce on its own inline hydration scripts (see middleware.ts CSP).
+  await headers();
+
   return (
     <html lang="th" suppressHydrationWarning>
       <body className="antialiased">
